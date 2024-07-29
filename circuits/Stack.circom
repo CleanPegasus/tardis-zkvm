@@ -12,9 +12,6 @@ template StackPush(maxStackHeight, maxSteps) {
   signal input column;
   signal input value;
 
-  //TODO: Row < maxSteps
-  // TODO: column < maxStackHeight
-
   // signal output out;
   signal trace[maxSteps][maxStackHeight];
 
@@ -44,8 +41,6 @@ template StackPush(maxStackHeight, maxSteps) {
   quinSelector.out === value;
 
 }
-
-
 
 template StackPushNop(maxStackHeight, maxSteps) {
   signal input instructions[maxSteps]; // TODO constrain them to be 0 or 1
@@ -156,4 +151,113 @@ template StackPushNop(maxStackHeight, maxSteps) {
 
 }
 
-component main = StackPushNop(4, 4);
+template StackPushNopPop(maxStackHeight, maxSteps) {
+  signal input instructions[maxSteps];
+  signal input values[maxSteps];
+
+  signal input row;
+  signal input column;
+  signal input value;
+
+  // constrain instructions to be 0, 1 or -1;
+  signal temp3[maxSteps];
+  for(var k; k<maxSteps; k++) {
+    temp3[k] <== instructions[k] * (instructions[k] - 1);
+    temp3[k] * (instructions[k] + 1) === 0;
+  }
+
+  // trace table
+  signal trace[maxSteps][maxStackHeight];
+
+  signal stackPointer[maxSteps];
+  signal instructionPointer[maxSteps];
+
+  component instructionSelector[maxSteps];
+  component valueSelector[maxSteps];
+  component conditions[maxSteps][maxStackHeight];
+  signal conditionedInstruction[maxSteps][maxStackHeight];
+  component isEqualCondition[maxSteps][maxStackHeight];
+
+  // build the first row 
+  instructionPointer[0] <== 0;
+  instructionSelector[0] = QuinSelector(maxSteps);
+  instructionSelector[0].inp <== instructions;
+  instructionSelector[0].selector <== instructionPointer[0];
+
+  stackPointer[0] <== -1 + instructionSelector[0].out;
+
+  valueSelector[0] = QuinSelector(maxSteps);
+  valueSelector[0].inp <== values;
+  valueSelector[0].selector <== instructionPointer[0];
+
+  for(var k; k<maxStackHeight; k++) {
+    conditions[0][k] = LessEqThan(maxStackHeight);
+    conditions[0][k].in[0] <== k;
+    conditions[0][k].in[1] <== stackPointer[0];
+
+    conditionedInstruction[0][k] <== conditions[0][k].out * instructionSelector[0].out;
+
+    trace[0][k] <== valueSelector[0].out * conditionedInstruction[0][k];
+    // log(trace[0][k]);
+  }
+  component lesserThanSpConstrain[maxSteps][maxStackHeight];
+  component equalToSpConstrain[maxSteps][maxStackHeight];
+
+  signal instructionValueResult[maxSteps];
+  component isPop[maxSteps];
+
+  signal temp1[maxSteps][maxStackHeight];
+  signal temp2[maxSteps][maxStackHeight];
+  signal temp4[maxSteps][maxStackHeight];
+
+  for(var i = 1; i<maxSteps; i++) {
+    instructionPointer[i] <== instructionPointer[i - 1] + 1;
+    instructionSelector[i] = QuinSelector(maxSteps);
+    instructionSelector[i].inp <== instructions;
+    instructionSelector[i].selector <== instructionPointer[i];
+
+    stackPointer[i] <== stackPointer[i - 1] + instructionSelector[i].out;
+
+    valueSelector[i] = QuinSelector(maxSteps);
+    valueSelector[i].inp <== values;
+    valueSelector[i].selector <== instructionPointer[i];
+
+    isPop[i] = LessEqThan(maxStackHeight);
+    isPop[i].in <== [0, instructionSelector[i].out];
+
+    instructionValueResult[i] <== valueSelector[i].out * instructionSelector[i].out;
+
+    for(var j; j<maxStackHeight; j++) {
+
+      lesserThanSpConstrain[i][j] = LessEqThan(maxStackHeight);
+      lesserThanSpConstrain[i][j].in <== [j, stackPointer[i]];
+
+      equalToSpConstrain[i][j] = IsEqual();
+      equalToSpConstrain[i][j].in <== [j, stackPointer[i]];
+
+      temp1[i][j] <== lesserThanSpConstrain[i][j].out * trace[i - 1][j];
+      temp2[i][j] <== equalToSpConstrain[i][j].out * instructionValueResult[i];
+      temp4[i][j] <== temp2[i][j] * isPop[i].out;
+
+      trace[i][j] <== temp1[i][j] + temp4[i][j];
+    }
+  }
+
+  log(trace[3][0]);
+  log(trace[3][1]);
+
+  component multiplexer = Multiplexer(maxStackHeight, maxSteps);
+  multiplexer.inp <== trace;
+  multiplexer.sel <== row;
+
+  signal selectedRow[maxStackHeight] <== multiplexer.out;
+
+  component quinSelector = QuinSelector(maxStackHeight);
+  quinSelector.inp <== selectedRow;
+  quinSelector.selector <== column;
+
+  quinSelector.out === value;
+
+}
+
+component main = StackPushNopPop(5, 5);

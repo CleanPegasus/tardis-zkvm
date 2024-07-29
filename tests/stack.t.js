@@ -21,16 +21,18 @@ describe("Stack Test", function (){
         await circuit.loadConstraints();
         
         // 1
-        // 1 2
-        // 1 2
-        // 1 2 4
-        expect(await circuit.calculateWitness({
-          instructions: [1, 1, 0, 1],
-          values: [1, 2, 3, 4],
-          row: 3,
-          column: 2,
-          value: 4
-        }, true)).to.be.ok;
+        // 1 
+        // 0
+        // 4
+        // 4 5
+        await circuit.calculateWitness({
+            instructions: [1, 0, -1, 1, 1],
+            values: [1, 2, 3, 4, 5],
+            row: 3,
+            column: 0,
+            value: 4
+          }, true)
 
     });
+
 });
