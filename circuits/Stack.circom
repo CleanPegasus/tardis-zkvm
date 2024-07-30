@@ -82,7 +82,6 @@ template StackPushNop(maxStackHeight, maxSteps) {
     conditions[0][k].in[1] <== stackPointer[0];
 
     conditionedInstruction[0][k] <== conditions[0][k].out * instructionSelector[0].out;
-
     trace[0][k] <== valueSelector[0].out * conditionedInstruction[0][k];
     // log(trace[0][k]);
   }
@@ -161,7 +160,9 @@ template StackPushNopPop(maxStackHeight, maxSteps) {
 
   // constrain instructions to be 0, 1 or -1;
   signal temp3[maxSteps];
-  for(var k; k<maxSteps; k++) {
+  // instructions[0] cannot be -1
+  instructions[0] * (instructions[0] - 1) === 0;
+  for(var k = 1; k<maxSteps; k++) {
     temp3[k] <== instructions[k] * (instructions[k] - 1);
     temp3[k] * (instructions[k] + 1) === 0;
   }
