@@ -16,7 +16,7 @@ describe("Stack Test", function (){
     this.timeout(100000);
 
     it("Should model addition", async() => {
-        const circuit = await wasm_tester(path.join(__dirname,"../circuits","Stack.circom"));
+        const circuit = await wasm_tester(path.join(__dirname,"../circuits/Stack","Stack.circom"));
 
         await circuit.loadConstraints();
         
